@@ -119,13 +119,6 @@ This project is useful for:
 
 ---
 
-## 👨‍💻 Author
-
-**Sai Kumar Joshi**
-MSc Digital Forensics & Information Security
-
----
-
 ## 📜 License
 
 This project is for educational purposes only.
