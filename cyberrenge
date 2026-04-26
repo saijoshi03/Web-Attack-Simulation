@@ -1,0 +1,129 @@
+import tkinter as tk
+from datetime import datetime
+import re
+
+
+def detect_attack(data):
+    data = data.lower()
+
+    # SQL Injection patterns
+    sql_patterns = [
+        r"(\bor\b\s+\d+=\d+)",
+        r"(\bunion\b.*\bselect\b)",
+        r"(--|\#)",
+        r"(\bdrop\b|\bdelete\b|\binsert\b|\bupdate\b)",
+        r"('|\")\s*or\s*('|\")",
+    ]
+
+    # XSS patterns
+    xss_patterns = [
+        r"<script.*?>.*?</script>",
+        r"onerror\s*=",
+        r"onload\s*=",
+        r"javascript:",
+        r"alert\s*\(",
+        r"<img.*?>"
+    ]
+
+    for pattern in sql_patterns:
+        if re.search(pattern, data):
+            return "SQL Injection"
+
+    for pattern in xss_patterns:
+        if re.search(pattern, data):
+            return "XSS"
+
+    return "Normal"
+
+
+
+
+class MiniWAF:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Mini WAF - Web Attack Simulator")
+        self.root.geometry("950x650")
+        self.root.configure(bg="#1e1e1e")
+
+        # Title
+        title = tk.Label(root, text=" Mini WAF Simulator", font=("Arial", 18, "bold"), bg="#1e1e1e", fg="white")
+        title.pack(pady=10)
+
+        # Input Frame
+        frame = tk.Frame(root, bg="#1e1e1e")
+        frame.pack(pady=10)
+
+        tk.Label(frame, text="URL:", bg="#1e1e1e", fg="white").grid(row=0, column=0, padx=5, pady=5)
+        self.url_entry = tk.Entry(frame, width=70)
+        self.url_entry.grid(row=0, column=1, padx=5)
+
+        tk.Label(frame, text="Payload:", bg="#1e1e1e", fg="white").grid(row=1, column=0, padx=5, pady=5)
+        self.payload_entry = tk.Entry(frame, width=70)
+        self.payload_entry.grid(row=1, column=1, padx=5)
+
+        # Buttons
+        btn_frame = tk.Frame(root, bg="#1e1e1e")
+        btn_frame.pack(pady=10)
+
+        tk.Button(btn_frame, text="Send Request", command=self.process_request, bg="green", fg="white", width=15).grid(row=0, column=0, padx=10)
+        tk.Button(btn_frame, text="Clear Logs", command=self.clear_logs, width=15).grid(row=0, column=1, padx=10)
+
+        # Logs
+        tk.Label(root, text=" Request Logs", bg="#1e1e1e", fg="white").pack()
+        self.log_box = tk.Text(root, height=15, width=110, bg="#121212", fg="lightgreen")
+        self.log_box.pack(pady=5)
+
+        # Alerts
+        tk.Label(root, text=" Alerts", bg="#1e1e1e", fg="white").pack()
+        self.alert_box = tk.Text(root, height=6, width=110, bg="black", fg="red")
+        self.alert_box.pack(pady=5)
+
+        # Status
+        self.status_label = tk.Label(root, text="Status: Waiting", font=("Arial", 12), bg="#1e1e1e", fg="white")
+        self.status_label.pack(pady=10)
+
+    # Logging
+    def log(self, message):
+        self.log_box.insert(tk.END, message + "\n")
+        self.log_box.see(tk.END)
+
+    # Alerts
+    def alert(self, message):
+        self.alert_box.insert(tk.END, message + "\n")
+        self.alert_box.see(tk.END)
+
+    # Process Request (FIXED)
+    def process_request(self):
+        url = self.url_entry.get()
+        payload = self.payload_entry.get()
+
+        #  Combine full request (IMPORTANT FIX)
+        full_request = url + " " + payload
+
+        timestamp = datetime.now().strftime("%H:%M:%S")
+
+        attack_type = detect_attack(full_request)
+
+        if attack_type == "Normal":
+            msg = f"[{timestamp}]  ALLOWED → {url} | Payload: {payload}"
+            self.log(msg)
+            self.status_label.config(text=" Request Allowed", fg="lightgreen")
+
+        else:
+            msg = f"[{timestamp}]  BLOCKED ({attack_type}) → {url} | Payload: {payload}"
+            self.log(msg)
+            self.alert(f"{attack_type} detected! Request blocked.")
+            self.status_label.config(text=f" {attack_type} Blocked", fg="red")
+
+    # Clear Logs
+    def clear_logs(self):
+        self.log_box.delete("1.0", tk.END)
+        self.alert_box.delete("1.0", tk.END)
+
+
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = MiniWAF(root)
+    root.mainloop()
